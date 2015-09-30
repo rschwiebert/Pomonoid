@@ -2,25 +2,30 @@ import copy
 import itertools
 from collections import namedtuple
 
+# Constants which can be overridden to study different partially ordered monoids
+BASE_GENERATORS = {'a', 'r'}
+BASE_RELATIONS = {('aaa', 'a'), ('rr', 'r'), ('11', '1'),
+                  ('1a', 'a'), ('a1', 'a'),
+                  ('1r', 'r'), ('r1', 'r')}
+
 # Base classes
-
-
 class Operation(object):
-    generators = {'a', 'r'}
+    """
+    An Operation object encapsulates the monoid's operation and reduction rules.
+    """
 
-    def __init__(self, relations=set(), override_table=dict()):
-
+    def __init__(self, relations=set(), override_table=dict(),
+        base_generators=BASE_GENERATORS, base_relations=BASE_RELATIONS):
+        self.generators = base_generators
         self.table = override_table
-        self.relations = {('aaa', 'a'), ('rr', 'r'), ('11', '1'),
-                          ('1a', 'a'), ('a1', 'a'),
-                          ('1r', 'r'), ('r1', 'r')}.union(relations)
+        self.relations = base_relations.union(relations)
 
     def reduce(self, word):
         """
         :param word: word (string) to be reduced
         :return: reduced word (string) according to relations
         """
-
+        # print(self.relations)
         orig = copy.copy(word)
         for x, y in self.relations:
             if x in word:
@@ -51,6 +56,9 @@ class Operation(object):
 
 
 class Order(object):
+    """
+    An Order object carries partial ordering information about a monoid.
+    """
     def __init__(self, order_relations=set(), elements=set(),
                  override_ordering=dict(),
                  override_incidence=dict()):
@@ -132,6 +140,11 @@ class Order(object):
 
 
 class ProductElement(object):
+    """
+    A ProductElement represents an element of the Cartesian product of monoids.
+    Since the originally generated sequence may reduce beyond recognition in
+    the component monoids, it is retained as the `original` attribute.
+    """
     def __init__(self, original, left, right):
         self.original = original
         self.left = left
@@ -154,11 +167,14 @@ class ProductElement(object):
         return hash(self.__repr__())
 
     def __eq__(self, other):
-        return self.left == other.left and \
-            self.right == other.right
+        return self.left == other.left and self.right == other.right
 
 
 class ProductOrder(Order):
+    """
+    The product order determines that one tuple is <= another tuple
+    iff corresponding entries are <= in their respective pomonoids.
+    """
     def __init__(self, M, N, elements):
         self.order1 = M.order
         self.order2 = N.order
@@ -205,11 +221,16 @@ class ProductOrder(Order):
 
 
 class ProductOperation(Operation):
-    def __init__(self, M, N):
+    """
+    The operation in a product of monoids is determined by the operations of
+    the component monoids.
+    """
+    def __init__(self, M, N, base_generators=BASE_GENERATORS):
         self.basic_operation = Operation()
         self.operation1 = M.operation
         self.operation2 = N.operation
         self.relations = set()
+        self.generators = base_generators
 
     def reduce(self, element):
         return ProductElement(self.basic_operation.reduce(element.original),
@@ -226,31 +247,43 @@ class ProductOperation(Operation):
 
 
 class Pomonoid(object):
+    """
+    A partially ordered monoid object. The monoid is usually finite, generated
+    from an initial set of generators and subject to given relations. An Order
+    object can be attached via the attach_order method.
+    """
     def __init__(self, elements=set(), relations=set(),
                  ordering=set(),
                  is_export=False,
                  override_elements=False,
                  override_table=dict(),
-                 override_ordering=dict(),
-                 override_incidence=dict()):
-
+                 base_relations=BASE_RELATIONS,
+                 base_generators=BASE_GENERATORS):
+        self.is_export = is_export
         if not is_export:
-            self.operation = Operation(relations=relations)
+            self.operation = Operation(relations=relations,
+                                       base_generators=base_generators,
+                                       base_relations=base_relations)
             if override_elements:
                 self.elements = elements
             else:
-                self.elements = elements.union({'1', 'a', 'r'})
+                self.elements = base_generators.union(elements).union({'1'})
 
             self._generate_elements()
             self.operation._generate_table(self.elements)
-            self.order = Order(ordering, self.elements)
         else:
             self.elements = override_elements
             self.operation = Operation(relations=relations,
                                        override_table=override_table)
+
+    def attach_order(self, ordering=set,
+                     override_ordering=dict(),
+                     override_incidence=dict()):
+        if not self.is_export:
+            self.order = Order(ordering, self.elements)
+        else:
             self.order = Order(override_incidence=override_incidence,
                                override_ordering=override_ordering)
-
 
     def _generate_elements(self):
         self.elements = {'1'}
@@ -276,7 +309,12 @@ class Pomonoid(object):
         return result
 
     def draw(self, file):
-        import graphviz as gv
+        try:
+            import graphviz as gv
+        except ImportError:
+            print("You need to install the graphviz software first, and "
+                  "also the python graphviz module.")
+
         gr = gv.Digraph(format='png')
         for e in self.elements:
             gr.node("%s" % e)
@@ -287,6 +325,14 @@ class Pomonoid(object):
 
 
 class ProductPomonoid(Pomonoid):
+    """
+    Form the product of two Pomonoid objects. The elements and operation are
+    determined automatically. If both inputs have orders, the product order
+    is also determined automatically.
+
+    :param M1: Pomonoid object
+    :param M2: Pomonoid object
+    """
     def __init__(self, M1, M2):
         self.M1 = M1
         self.M2 = M2
@@ -295,13 +341,17 @@ class ProductPomonoid(Pomonoid):
         self.operation = ProductOperation(self.M1, self.M2)
         self._generate_elements()
         self.operation._generate_table(self.elements)
-        self.order = ProductOrder(self.M1, self.M2, self.elements)
         self.lookup = dict((e.original, e) for e in self.elements)
+        if hasattr(self.M1, 'order') and hasattr(self.M2, 'order'):
+            self.attach_order()
 
 
     @property
     def pairs(self):
         return set((e.left, e.right) for e in self.elements)
+
+    def attach_order(self):
+        self.order = ProductOrder(self.M1, self.M2, self.elements)
 
     def _generate_elements(self):
         self.elements = {ProductElement('1', '1', '1')}
@@ -341,100 +391,27 @@ class ProductPomonoid(Pomonoid):
         table = dict((x.original, dict((y.original, self.operation.table[x][y])
                      for y in self.operation.table[x]))
                      for x in self.operation.table)
-        incidence = dict(
-            (x.original, dict((y.original, self.order.incidence[x][y])
-                              for y in self.order.incidence[x]))
-            for x in self.order.incidence)
-        ordering = dict(
-            (x.original, dict((y.original, self.order.ordering[x][y])
-                              for y in self.order.ordering[x]))
-            for x in self.order.ordering)
+        if hasattr(self, 'order'):
+            incidence = dict(
+                (x.original, dict((y.original, self.order.incidence[x][y])
+                                  for y in self.order.incidence[x]))
+                for x in self.order.incidence)
+            ordering = dict(
+                (x.original, dict((y.original, self.order.ordering[x][y])
+                                  for y in self.order.ordering[x]))
+                for x in self.order.ordering)
         relations = set()
         for k in self.relation_tracker:
             for item in self.relation_tracker[k]:
                 if len(item) >= len(k):
                     relations.add((item, k))
 
-        return Pomonoid(relations=relations,
-                        override_table=table,
-                        override_elements=elements,
-                        override_incidence=incidence,
-                        override_ordering=ordering,
-                        is_export=True)
-
-dual = Pomonoid(relations={('aa', '1'), ('rara', 'rar')},
-                ordering={
-                    ('r', '1'), ('r', 'rar'),
-                    ('ra', 'rar'), ('ra', 'a'),
-                    ('1', 'ara'),
-                    ('a', 'ar'),
-                    ('rar', 'arar'),
-                    ('arar', 'ara'), ('arar', 'ar')})
-
-semiprime = Pomonoid(relations={('ra', 'ar'), ('ar', 'a')},
-                     ordering={('aa', 'r'), ('r', '1')})
-
-field = Pomonoid(ordering = set(),
-                 elements={'1', 'a'},
-                 relations={('r', '1'), ('aa', '1')},
-                 override_elements=True)
-
-ZDRb = Pomonoid(relations={('rara', 'rar'), ('aar', 'r'), ('raa', 'r')},
-                ordering={
-                    ('r', 'aa'), ('r', 'rar'),
-                    ('ra', 'rar'), ('ra', 'a'),
-                    ('aa', 'ara'), ('aa', '1'),
-                    ('a', 'ar'),
-                    ('rar', 'arar'),
-                    ('arar', 'ara'), ('arar', 'ar')})
-
-ZDRc = Pomonoid(relations={('ara', 'ar'), ('rara', 'aar'), ('raar', 'aar')},
-                ordering={
-                    ('aar', 'raa'), ('aar', 'ra'),
-                    ('raa', 'aa'), ('raa', 'r'),
-                    ('ra', 'rar'), ('ra', 'a'),
-                    ('aa', '1'),
-                    ('r', '1'), ('r', 'rar'),
-                    ('a', 'ar'),
-                    ('1', 'ar'),
-                    ('rar', 'ar')})
-
-# field is a collapse of semiprime
-# dual is a collapse of ZDRb monoid
-
-test1 = ProductPomonoid(ZDRb, field)
-test2 = ProductPomonoid(ZDRc, field)
-test3 = ProductPomonoid(ZDRb, ZDRc)
-# The minify() method only removes the simplest redundant paths
-# The following corrections are manually removing 2-and 3-step redundancies
-test3.order.incidence[test3.lookup['aar']][test3.lookup['1']] = False
-test3.order.incidence[test3.lookup['ra']][test3.lookup['ara']] = False
-test3.order.incidence[test3.lookup['r']][test3.lookup['ar']] = False
-#test3.order.incidence[test3.lookup['aarar']][test3.lookup['ar']] = False
-#test3.order.incidence[test3.lookup['aarar']][test3.lookup['ara']] = False
-
-# test4 = ProductPomonoid(test3.export(), semiprime)
-largest_dual = ProductPomonoid(dual, field)
-largest_zdr = ProductPomonoid(test3.export(), field)
-largest_zdr.order.incidence[largest_zdr.lookup['aarar']][largest_zdr.lookup['ar']] = False
-# largest_zdr.order.incidence[largest_zdr.lookup['aarara']][largest_zdr.lookup['ara']] = False
-
-
-# semiprime.draw('semiprime')
-# dual.draw('dual')
-largest_dual.draw('largest_dual')
-largest_zdr.draw('largest_zdr')
-#
-ZDRb.draw('ZDRb')
-ZDRc.draw('ZDRc')
-test1.draw('test1')
-test2.draw('test2')
-test3.draw('test3')
-# test4.draw('test4')
-trial=Pomonoid(relations={('rara','rar'),
-                          ('raar', 'aar'),
-                          ('araa','ar')
-                          })
-
-# need to get relations working for exported monoids to do the following
-# test4 = ProductPomonoid(semiprime, test3.export())
+        result = Pomonoid(relations=relations,
+                          override_table=table,
+                          override_elements=elements,
+                          is_export=True)
+        if hasattr(self, 'order'):
+            result.attach_order(override_incidence=incidence,
+                                override_ordering=ordering,
+            )
+        return result
