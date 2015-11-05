@@ -134,10 +134,22 @@ ZDLRbf.draw('ZDLRbf')
 ZDLRcf.draw('ZDLRcf')
 ZDLRbc.draw('ZDLRbc')
 # test4.draw('test4')
-trial=Pomonoid(relations={('rara','rar'),
-                          ('raar', 'aar'),
-                          ('araa','ar')
+trial=Pomonoid(relations={
+						  ('ararar', 'rar'),
+						  ('ararara', 'rara'),
+						  ('arararaa', 'raraa'),
+						  ('aarar', 'rar'),
+						  ('aarara', 'rara'),
+						  ('aararaa', 'raraa'),
                           })
+# if a(I)!=0, I is contained in a minimal prime
+# then rI is in the lattice I studied.
+# if rI is contained in (x,y), then rarI=aN
+# if rI is not contained in (x,y), then rarI=N
+# furthermore rN=N and aaN=N
+# consequently, the following are equal to rar:
+# aarar, ararar, and any
+
 
 # need to get relations working for exported monoids to do the following
 # test4 = ProductPomonoid(semiprime, ZDLRbc.export())

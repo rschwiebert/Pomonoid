@@ -1,0 +1,33 @@
+digraph {
+	rar
+	ar
+	1
+	rara
+	arar
+	aar
+	a
+	raa
+	ra
+	ara
+	r
+	aara
+	aa
+		rar -> arar
+		rara -> rar
+		arar -> ar
+		arar -> ara
+		aar -> rara
+		aar -> raa
+		a -> ar
+		raa -> r
+		raa -> aa
+		ra -> rar
+		ra -> a
+		r -> rar
+		r -> 1
+		r -> ara
+		aara -> rara
+		aara -> ra
+		aa -> 1
+		aa -> ara
+}

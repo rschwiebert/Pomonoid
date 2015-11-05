@@ -288,7 +288,7 @@ class Pomonoid(object):
     def _generate_elements(self):
         self.elements = {'1'}
         n = 1
-        while n < 1000:
+        while n < 10:
             start = len(self.elements)
             self.elements = self.elements.union(
                 self._generate_n_words(n))

@@ -1,0 +1,19 @@
+digraph {
+	kckc
+	c
+	1
+	ckck
+	k
+	ck
+	kck
+	ckckc
+	kc
+	ckc
+		kckc -> ckc
+		c -> ck
+		1 -> ckc
+		k -> 1
+		k -> ckck
+		kc -> c
+		kc -> ckckc
+}

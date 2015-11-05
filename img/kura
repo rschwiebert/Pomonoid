@@ -1,0 +1,32 @@
+digraph {
+	c
+	kckck
+	kckckc
+	1
+	ckckc
+	ckckckc
+	ck
+	ckckck
+	kc
+	k
+	kckc
+	ckck
+	ckc
+	kck
+		c -> ck
+		kckck -> kckc
+		kckck -> ckck
+		kckckc -> ckckc
+		kckckc -> kck
+		1 -> ckc
+		ckckc -> ckckck
+		ckckckc -> ckc
+		ckckck -> ck
+		kc -> c
+		kc -> kckckc
+		k -> kckck
+		k -> 1
+		kckc -> ckckckc
+		ckck -> ckckckc
+		kck -> ckckck
+}

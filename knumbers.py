@@ -69,7 +69,7 @@ def multicompose(elt, mapset):
     return cur
 
 
-def find_orbits(mapset):
-    allmaps = set(multicompose(elt, mapset) for elt in mapset.r.keys())
+def find_orbits(mapset, elements):
+    allmaps = set(multicompose(elt, mapset) for elt in elements)
     for ideal in mapset.r.keys():
-        print(ideal, set(f[ideal] for f in allmaps))
+        print(set(f[ideal] for f in allmaps))
