@@ -95,7 +95,8 @@ ZDLRb.attach_order(ordering={
     ('rar', 'arar'),
     ('arar', 'ara'), ('arar', 'ar')})
 
-ZDLRc = Pomonoid(relations={('ara', 'ar'), ('rara', 'aar'), ('raar', 'aar')})
+ZDLRc = Pomonoid(relations={('ara', 'ar'),
+                            ('raar', 'aar')})
 ZDLRc.attach_order(ordering={
                     ('aar', 'raa'), ('aar', 'ra'),
                     ('raa', 'aa'), ('raa', 'r'),
